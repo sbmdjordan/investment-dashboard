@@ -286,7 +286,7 @@ def main():
         amount_str = st.text_input(
             "Amount available to invest this month",
             value="",
-            placeholder="e.g. 500",
+            placeholder="",
             key="monthly_amount",
         )
         try:
