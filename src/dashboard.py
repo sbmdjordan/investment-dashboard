@@ -1,6 +1,7 @@
 """Investment Allocation Dashboard — Streamlit UI."""
 
 import streamlit as st
+import streamlit.components.v1 as components
 
 st.set_page_config(page_title="Investment Allocation", layout="wide")
 
@@ -120,16 +121,21 @@ def main():
         st.header("Allocation Overrides")
         st.caption("Adjust from the system's suggestion if needed")
 
-        # Hide slider thumb value + real-time label updates via JS
+        # Hide slider thumb value
         st.markdown(
             """<style>
             [data-testid="stSidebar"] [data-testid="stThumbValue"] { display: none !important; }
             [data-testid="stSidebar"] .stSlider [data-testid="stTickBarMin"],
             [data-testid="stSidebar"] .stSlider [data-testid="stTickBarMax"] { display: none !important; }
-            </style>
+            </style>""",
+            unsafe_allow_html=True,
+        )
+        # Real-time slider label sync via JS (components.html runs scripts)
+        components.html("""
             <script>
+            const doc = window.parent.document;
             function initSliderSync() {
-                const sidebar = document.querySelector('[data-testid="stSidebar"]');
+                const sidebar = doc.querySelector('[data-testid="stSidebar"]');
                 if (!sidebar) { setTimeout(initSliderSync, 500); return; }
                 const sliders = sidebar.querySelectorAll('[role="slider"]');
                 const labels = sidebar.querySelectorAll('[data-slider-label]');
@@ -146,15 +152,13 @@ def main():
                         if (leftSpan) leftSpan.textContent = val + '%';
                         if (rightSpan) rightSpan.textContent = comp + '%';
                     };
-                    slider.addEventListener('input', update);
                     const obs = new MutationObserver(update);
                     obs.observe(slider, { attributes: true, attributeFilter: ['aria-valuenow'] });
                 });
             }
             initSliderSync();
-            </script>""",
-            unsafe_allow_html=True,
-        )
+            </script>
+        """, height=0)
 
         offence_override = st.slider(
             "Offence / Defence split",
