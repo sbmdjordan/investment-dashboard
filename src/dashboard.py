@@ -4,8 +4,8 @@ import streamlit as st
 
 st.set_page_config(page_title="Investment Allocation", layout="wide")
 
-from src.data_sources import fetch_all
-from src.scoring import calculate_allocation
+from data_sources import fetch_all
+from scoring import calculate_allocation
 
 SIGNAL_INFO = {
     "Valuation (P/E)": (
