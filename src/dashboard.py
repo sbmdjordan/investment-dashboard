@@ -33,9 +33,9 @@ SIGNAL_INFO = {
         "Direction of the 10Y Treasury yield over 3 months.\n\n"
         "This reflects where the market thinks interest rates are heading "
         "— it moves before central banks actually change rates.\n\n"
-        "Rising — money getting more expensive, lean defensive.\n"
-        "Falling — money getting cheaper, lean offensive.\n"
-        "Flat — no clear direction."
+        "Rising: money getting more expensive, lean defensive.\n"
+        "Falling: money getting cheaper, lean offensive.\n"
+        "Flat: no clear direction."
     ),
     "Fear & Greed": (
         "**CNN's investor emotion index** (0-100).\n\n"
