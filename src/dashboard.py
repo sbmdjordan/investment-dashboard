@@ -108,7 +108,21 @@ def render_gauge(label: str, pct: int, color: str, subtitle: str = ""):
 
 def main():
     st.title("Investment Allocation Dashboard")
-    st.caption("Monthly macro signal monitor — Offence vs Defence")
+    alloc_tip = (
+        "The system scores 7 macro signals from -2 to +2 each.<br><br>"
+        "Positive total = market looks favourable = more offence.<br>"
+        "Negative total = caution = more defence.<br><br>"
+        "Offence (stocks + BTC) always stays between 25-75%.<br>"
+        "Defence (bonds + gold) is the remainder."
+    )
+    st.markdown(
+        f'<div style="display:flex; align-items:center; gap:6px;">'
+        f'<span style="font-size:0.875rem; color:#888;">Monthly macro signal monitor — Offence vs Defence</span>'
+        f'<span class="sig-tip"><span class="tip-icon">i</span>'
+        f'<span class="tip-text">{alloc_tip}</span></span>'
+        f'</div>',
+        unsafe_allow_html=True,
+    )
 
     # --- Fetch data ---
     with st.spinner("Fetching market data..."):
@@ -204,21 +218,7 @@ def main():
         )
 
     # --- Top: Allocation suggestion ---
-    alloc_tip = (
-        "The system scores 7 macro signals from -2 to +2 each.<br><br>"
-        "Positive total = market looks favourable = more offence.<br>"
-        "Negative total = caution = more defence.<br><br>"
-        "Offence (stocks + BTC) always stays between 25-75%.<br>"
-        "Defence (bonds + gold) is the remainder."
-    )
-    st.markdown(
-        f'<div style="display:flex; align-items:center; gap:8px;">'
-        f'<h2 style="font-weight:600; margin:0; padding:0.6rem 0;">Suggested Allocation</h2>'
-        f'<span class="sig-tip"><span class="tip-icon">i</span>'
-        f'<span class="tip-text">{alloc_tip}</span></span>'
-        f'</div>',
-        unsafe_allow_html=True,
-    )
+    st.header("Suggested Allocation")
 
     col1, col2, col3 = st.columns([2, 1, 2])
     with col1:
