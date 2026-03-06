@@ -283,14 +283,17 @@ def main():
     calc_left, calc_right = st.columns(2)
 
     with calc_left:
-        monthly_amount = st.number_input(
+        amount_str = st.text_input(
             "Amount available to invest this month",
-            min_value=0.0,
-            value=0.0,
-            step=50.0,
-            format="%.2f",
+            value="",
+            placeholder="e.g. 500",
             key="monthly_amount",
         )
+        try:
+            monthly_amount = float(amount_str) if amount_str.strip() else 0.0
+        except ValueError:
+            monthly_amount = 0.0
+            st.warning("Please enter a valid number.")
 
     if monthly_amount > 0:
         offence_amount = monthly_amount * (offence_override / 100)
