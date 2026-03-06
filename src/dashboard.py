@@ -92,7 +92,7 @@ def signal_color(score: int) -> str:
 
 
 def render_gauge(label: str, pct: int, color: str, subtitle: str = ""):
-    sub_html = f'<div style="font-size:0.85rem; color:#888; margin-top:0.2rem; margin-bottom:1.5rem;">{subtitle}</div>' if subtitle else ""
+    sub_html = f'<div style="font-size:0.85rem; color:#888; margin-top:0.2rem; margin-bottom:2.5rem;">{subtitle}</div>' if subtitle else ""
     st.markdown(
         f"""
         <div style="text-align:center;">
@@ -176,7 +176,7 @@ def main():
 
     with signals_col:
         st.markdown(
-            '<h2 style="font-size:1.75rem; font-weight:600; padding:0.6rem 0;">Signal Breakdown</h2>',
+            '<h2 style="font-weight:600; padding:0.6rem 0;">Signal Breakdown</h2>',
             unsafe_allow_html=True,
         )
 
@@ -232,7 +232,7 @@ def main():
 
     with indicators_col:
         st.markdown(
-            '<h2 style="text-align:center; font-size:1.75rem; font-weight:600; padding:0.6rem 0;">Indicators</h2>',
+            '<h2 style="text-align:center; font-weight:600; padding:0.6rem 0;">Indicators</h2>',
             unsafe_allow_html=True,
         )
 
