@@ -30,12 +30,12 @@ SIGNAL_INFO = {
         "Higher = stocks more attractive = lean offensive."
     ),
     "Rate Trend": (
-        "**Is borrowing getting cheaper or more expensive?**\n\n"
-        "Tracks the 10-year US Treasury yield over the last 3 months.\n\n"
-        "| Trend | What happens |\n|---|---|\n"
-        "| Rising | Money costs more, slows growth |\n"
-        "| Falling | Cheaper money, fuels growth |\n\n"
-        "Rising = lean defensive. Falling = lean offensive."
+        "Direction of the 10Y Treasury yield over 3 months.\n\n"
+        "This reflects where the market thinks interest rates are heading "
+        "— it moves before central banks actually change rates.\n\n"
+        "Rising — money getting more expensive, lean defensive.\n"
+        "Falling — money getting cheaper, lean offensive.\n"
+        "Flat — no clear direction."
     ),
     "Fear & Greed": (
         "**CNN's investor emotion index** (0-100).\n\n"
@@ -69,15 +69,11 @@ SIGNAL_INFO = {
         "Bigger drops = more fear = potential opportunity."
     ),
     "Yield Curve": (
-        "**Gap between long-term (10Y) and short-term (3M) interest rates.**\n\n"
-        "Normally long-term rates are higher (positive spread). "
-        "When short-term rates exceed long-term (inverted), "
-        "it's one of the strongest recession warning signals.\n\n"
-        "| Spread | Meaning |\n|---|---|\n"
-        "| Positive | Normal — economy healthy |\n"
-        "| Flat | Caution |\n"
-        "| Negative | Inverted — recession risk |\n\n"
-        "Inverted = lean defensive."
+        "10Y bond yield minus 3M bond yield.\n\n"
+        "Above +0.5% — healthy economy, lean offensive.\n"
+        "0% to +0.5% — flat, caution.\n"
+        "Below 0% — inverted, recession warning, lean defensive.\n\n"
+        "Inversion has predicted every US recession since the 1970s."
     ),
 }
 
@@ -232,17 +228,12 @@ def main():
             st.markdown(row_html, unsafe_allow_html=True)
 
     with indicators_col:
-        st.header("Indicators")
         st.markdown(
-            '<style>[data-testid="stMetric"] { text-align:center; }'
-            '[data-testid="stMetric"] label { justify-content:center; }'
-            '[data-testid="stMetric"] [data-testid="stMetricValue"] { justify-content:center; }'
-            "div.stCaption { text-align:center; }</style>",
+            '<h2 style="text-align:center; font-size:1.75rem; font-weight:600; padding:0.6rem 0;">Indicators</h2>',
             unsafe_allow_html=True,
         )
 
         avg = data.get("avg_policy_rate")
-        st.metric("Avg Policy Rate", f"{avg:.2f}%" if avg else "N/A")
         fed = data.get("fed_rate")
         ecb = data.get("ecb_rate")
         boe = data.get("boe_rate")
@@ -253,31 +244,50 @@ def main():
             parts.append(f"ECB {ecb}%")
         if boe is not None:
             parts.append(f"BoE {boe}%")
-        st.caption(" / ".join(parts) if parts else "Could not fetch rates")
+        rates_caption = " / ".join(parts) if parts else "Could not fetch rates"
 
-        st.markdown("")
         t10 = data.get("treasury_10y")
-        st.metric("10Y Treasury", f"{t10:.2f}%" if t10 else "N/A")
         trend = data.get("rate_trend", "N/A")
-        st.caption(f"3-month trend: {trend}")
-
-        st.markdown("")
         spread = data.get("yield_curve_spread")
-        st.metric("Yield Curve (10Y-3M)", f"{spread:+.2f}%" if spread is not None else "N/A")
+        spread_label = ""
         if spread is not None:
-            st.caption("Inverted" if spread < 0 else "Normal" if spread > 0.2 else "Flat")
+            spread_label = "Inverted" if spread < 0 else "Normal" if spread > 0.2 else "Flat"
+
+        indicators_html = f"""
+        <div style="text-align:center; padding-top:0.5rem;">
+            <div style="margin-bottom:1.5rem;">
+                <div style="font-size:0.85rem; color:#888;">Avg Policy Rate</div>
+                <div style="font-size:2rem; font-weight:700;">{f'{avg:.2f}%' if avg else 'N/A'}</div>
+                <div style="font-size:0.75rem; color:#666;">{rates_caption}</div>
+            </div>
+            <div style="margin-bottom:1.5rem;">
+                <div style="font-size:0.85rem; color:#888;">10Y Treasury</div>
+                <div style="font-size:2rem; font-weight:700;">{f'{t10:.2f}%' if t10 else 'N/A'}</div>
+                <div style="font-size:0.75rem; color:#666;">3-month trend: {trend}</div>
+            </div>
+            <div>
+                <div style="font-size:0.85rem; color:#888;">Yield Curve (10Y-3M)</div>
+                <div style="font-size:2rem; font-weight:700;">{f'{spread:+.2f}%' if spread is not None else 'N/A'}</div>
+                <div style="font-size:0.75rem; color:#666;">{spread_label}</div>
+            </div>
+        </div>
+        """
+        st.markdown(indicators_html, unsafe_allow_html=True)
 
     # --- Monthly Investment Calculator ---
     st.header("Monthly Investment Calculator")
 
-    monthly_amount = st.number_input(
-        "Amount available to invest this month",
-        min_value=0.0,
-        value=500.0,
-        step=50.0,
-        format="%.2f",
-        key="monthly_amount",
-    )
+    calc_left, calc_right = st.columns(2)
+
+    with calc_left:
+        monthly_amount = st.number_input(
+            "Amount available to invest this month",
+            min_value=0.0,
+            value=500.0,
+            step=50.0,
+            format="%.2f",
+            key="monthly_amount",
+        )
 
     if monthly_amount > 0:
         offence_amount = monthly_amount * (offence_override / 100)
@@ -288,38 +298,26 @@ def main():
         bonds_amount = defence_amount * (bonds_pct / 100)
         gold_amount = defence_amount * (gold_pct / 100)
 
-        st.markdown("---")
-
-        col_off, col_def = st.columns(2)
-
-        with col_off:
+        with calc_right:
             st.markdown(
-                f'<div style="background:#1a2e1a; padding:1.2rem; border-radius:8px; border-left:4px solid #22c55e;">'
-                f'<div style="font-size:1.1rem; font-weight:bold; color:#22c55e;">Offence — £{offence_amount:,.2f} ({offence_override}%)</div>'
-                f'<div style="margin-top:0.8rem;">'
-                f'<div style="display:flex; justify-content:space-between; padding:0.3rem 0;"><span>Stocks</span><span style="font-weight:bold;">£{stocks_amount:,.2f}</span></div>'
-                f'<div style="display:flex; justify-content:space-between; padding:0.3rem 0;"><span>Bitcoin</span><span style="font-weight:bold;">£{btc_amount:,.2f}</span></div>'
-                f"</div></div>",
+                f'<div style="display:flex; gap:1rem; padding-top:0.5rem;">'
+                f'  <div style="flex:1; background:#1a2e1a; padding:1rem; border-radius:8px; border-left:4px solid #22c55e;">'
+                f'    <div style="font-size:0.95rem; font-weight:bold; color:#22c55e;">Offence — £{offence_amount:,.2f} ({offence_override}%)</div>'
+                f'    <div style="margin-top:0.6rem;">'
+                f'      <div style="display:flex; justify-content:space-between; padding:0.2rem 0;"><span>Stocks</span><span style="font-weight:bold;">£{stocks_amount:,.2f}</span></div>'
+                f'      <div style="display:flex; justify-content:space-between; padding:0.2rem 0;"><span>Bitcoin</span><span style="font-weight:bold;">£{btc_amount:,.2f}</span></div>'
+                f'    </div>'
+                f'  </div>'
+                f'  <div style="flex:1; background:#1a1a2e; padding:1rem; border-radius:8px; border-left:4px solid #3b82f6;">'
+                f'    <div style="font-size:0.95rem; font-weight:bold; color:#3b82f6;">Defence — £{defence_amount:,.2f} ({defence_override}%)</div>'
+                f'    <div style="margin-top:0.6rem;">'
+                f'      <div style="display:flex; justify-content:space-between; padding:0.2rem 0;"><span>Bonds/Gilts</span><span style="font-weight:bold;">£{bonds_amount:,.2f}</span></div>'
+                f'      <div style="display:flex; justify-content:space-between; padding:0.2rem 0;"><span>Gold</span><span style="font-weight:bold;">£{gold_amount:,.2f}</span></div>'
+                f'    </div>'
+                f'  </div>'
+                f'</div>',
                 unsafe_allow_html=True,
             )
-
-        with col_def:
-            st.markdown(
-                f'<div style="background:#1a1a2e; padding:1.2rem; border-radius:8px; border-left:4px solid #3b82f6;">'
-                f'<div style="font-size:1.1rem; font-weight:bold; color:#3b82f6;">Defence — £{defence_amount:,.2f} ({defence_override}%)</div>'
-                f'<div style="margin-top:0.8rem;">'
-                f'<div style="display:flex; justify-content:space-between; padding:0.3rem 0;"><span>Bonds/Gilts</span><span style="font-weight:bold;">£{bonds_amount:,.2f}</span></div>'
-                f'<div style="display:flex; justify-content:space-between; padding:0.3rem 0;"><span>Gold</span><span style="font-weight:bold;">£{gold_amount:,.2f}</span></div>'
-                f"</div></div>",
-                unsafe_allow_html=True,
-            )
-
-        st.markdown("")
-        st.markdown(
-            f"**Total: £{monthly_amount:,.2f}** — "
-            f"Stocks £{stocks_amount:,.2f} · Bitcoin £{btc_amount:,.2f} · "
-            f"Bonds £{bonds_amount:,.2f} · Gold £{gold_amount:,.2f}"
-        )
 
 
 if __name__ == "__main__":
