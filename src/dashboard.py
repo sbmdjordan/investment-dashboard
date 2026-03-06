@@ -175,59 +175,72 @@ def main():
         render_gauge("Defence", result["defence_pct"], "#3b82f6")
         st.caption("Bonds/Gilts + Gold")
 
-    # --- Signals breakdown ---
-    st.header("Signal Breakdown")
+    # --- Signals + Additional Indicators side by side ---
+    signals_col, indicators_col = st.columns([2, 1])
 
-    # Build signal rows as a single HTML block for clean alignment
-    rows_html = ""
-    for name, score, desc in result["signals"]:
-        bar_color = signal_color(score)
-        bar_width = max(abs(score) * 25, 8)
-        score_color = signal_color(score)
-        rows_html += (
-            f'<div style="display:flex; align-items:center; padding:0.6rem 0; '
-            f'border-bottom:1px solid rgba(255,255,255,0.06);">'
-            f'  <div style="width:160px; font-weight:600; flex-shrink:0;">{name}</div>'
-            f'  <div style="flex:1; padding:0 1rem;">'
-            f'    <div style="background:rgba(255,255,255,0.05); border-radius:4px; height:1.2rem; position:relative;">'
-            f'      <div style="width:{bar_width}%; background:{bar_color}; height:100%; border-radius:4px;'
-            f'        {"margin-left:auto;" if score < 0 else ""}"></div>'
-            f"    </div>"
-            f'    <div style="font-size:0.78rem; color:#888; margin-top:2px;">{desc}</div>'
-            f"  </div>"
-            f'  <div style="width:50px; text-align:center; font-size:1.3rem; font-weight:bold; '
-            f'color:{score_color}; flex-shrink:0;">{score:+d}</div>'
-            f"</div>"
+    with signals_col:
+        st.header("Signal Breakdown")
+
+        # Tooltip CSS (injected once)
+        st.markdown(
+            """<style>
+            .sig-tip { position:relative; display:inline-flex; align-items:center;
+                       cursor:help; margin-left:6px; }
+            .sig-tip .tip-icon { font-size:0.7rem; font-style:italic; color:#666;
+                                 border:1px solid #555; border-radius:50%;
+                                 width:16px; height:16px; display:inline-flex;
+                                 align-items:center; justify-content:center;
+                                 flex-shrink:0; }
+            .sig-tip .tip-text { visibility:hidden; opacity:0;
+                                 background:#1e1e2e; color:#ccc; border:1px solid #333;
+                                 border-radius:6px; padding:0.6rem 0.8rem;
+                                 font-size:0.78rem; font-weight:400; line-height:1.4;
+                                 width:280px; position:absolute; left:24px; top:50%;
+                                 transform:translateY(-50%); z-index:999;
+                                 transition:opacity 0.15s; pointer-events:none; }
+            .sig-tip:hover .tip-text { visibility:visible; opacity:1; }
+            </style>""",
+            unsafe_allow_html=True,
         )
 
-    st.markdown(
-        f'<div style="margin-bottom:1rem;">{rows_html}</div>',
-        unsafe_allow_html=True,
-    )
+        for name, score, desc in result["signals"]:
+            bar_color = signal_color(score)
+            bar_width = max(abs(score) * 25, 8)
+            score_color = signal_color(score)
+            tip = SIGNAL_INFO.get(name, "")
+            # Strip markdown for HTML tooltip (simple plain-text version)
+            tip_plain = tip.replace("**", "").replace("\n\n", "<br>").replace("\n", "<br>").replace("|", " ").replace("---", "")
 
-    # Info buttons in a row below the table
-    info_cols = st.columns(len(result["signals"]))
-    for i, (name, _, _) in enumerate(result["signals"]):
-        with info_cols[i]:
-            if name in SIGNAL_INFO:
-                with st.popover(f"i {name.split('(')[0].strip()}", use_container_width=True):
-                    st.markdown(SIGNAL_INFO[name])
-
-    # --- Extra indicators ---
-    hdr2_col, info2_col = st.columns([6, 1])
-    with hdr2_col:
-        st.header("Additional Indicators")
-    with info2_col:
-        with st.popover("i", use_container_width=True):
-            st.markdown(
-                "These are extra context — they don't directly affect the score "
-                "but help you understand the environment.\n\n"
-                "**Policy rates** are auto-fetched from the Fed, ECB, and Bank of England. "
-                "Higher average = tighter money = generally defensive."
+            row_html = (
+                f'<div style="display:flex; align-items:center; padding:0.5rem 0;">'
+                f'  <div style="width:190px; font-weight:600; flex-shrink:0; display:flex; align-items:center;">'
+                f'    {name}'
+                f'    <span class="sig-tip"><span class="tip-icon">i</span>'
+                f'      <span class="tip-text">{tip_plain}</span></span>'
+                f'  </div>'
+                f'  <div style="flex:1; padding:0 1rem;">'
+                f'    <div style="background:rgba(255,255,255,0.05); border-radius:4px; height:1.2rem;">'
+                f'      <div style="width:{bar_width}%; background:{bar_color}; height:100%; border-radius:4px;'
+                f'        {"margin-left:auto;" if score < 0 else ""}"></div>'
+                f"    </div>"
+                f'    <div style="font-size:0.78rem; color:#888; margin-top:2px;">{desc}</div>'
+                f"  </div>"
+                f'  <div style="width:50px; text-align:center; font-size:1.3rem; font-weight:bold; '
+                f'color:{score_color}; flex-shrink:0;">{score:+d}</div>'
+                f"</div>"
             )
+            st.markdown(row_html, unsafe_allow_html=True)
 
-    ic1, ic2, ic3 = st.columns(3)
-    with ic1:
+    with indicators_col:
+        st.header("Indicators")
+        st.markdown(
+            '<style>[data-testid="stMetric"] { text-align:center; }'
+            '[data-testid="stMetric"] label { justify-content:center; }'
+            '[data-testid="stMetric"] [data-testid="stMetricValue"] { justify-content:center; }'
+            "div.stCaption { text-align:center; }</style>",
+            unsafe_allow_html=True,
+        )
+
         avg = data.get("avg_policy_rate")
         st.metric("Avg Policy Rate", f"{avg:.2f}%" if avg else "N/A")
         fed = data.get("fed_rate")
@@ -241,12 +254,14 @@ def main():
         if boe is not None:
             parts.append(f"BoE {boe}%")
         st.caption(" / ".join(parts) if parts else "Could not fetch rates")
-    with ic2:
+
+        st.markdown("")
         t10 = data.get("treasury_10y")
         st.metric("10Y Treasury", f"{t10:.2f}%" if t10 else "N/A")
         trend = data.get("rate_trend", "N/A")
         st.caption(f"3-month trend: {trend}")
-    with ic3:
+
+        st.markdown("")
         spread = data.get("yield_curve_spread")
         st.metric("Yield Curve (10Y-3M)", f"{spread:+.2f}%" if spread is not None else "N/A")
         if spread is not None:
