@@ -283,7 +283,7 @@ def main():
         monthly_amount = st.number_input(
             "Amount available to invest this month",
             min_value=0.0,
-            value=500.0,
+            value=0.0,
             step=50.0,
             format="%.2f",
             key="monthly_amount",
