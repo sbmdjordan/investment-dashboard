@@ -295,35 +295,37 @@ def main():
             monthly_amount = 0.0
             st.warning("Please enter a valid number.")
 
-    if monthly_amount > 0:
-        offence_amount = monthly_amount * (offence_override / 100)
-        defence_amount = monthly_amount * (defence_override / 100)
+    offence_amount = monthly_amount * (offence_override / 100)
+    defence_amount = monthly_amount * (defence_override / 100)
 
-        stocks_amount = offence_amount * (stocks_pct / 100)
-        btc_amount = offence_amount * (btc_pct / 100)
-        bonds_amount = defence_amount * (bonds_pct / 100)
-        gold_amount = defence_amount * (gold_pct / 100)
+    stocks_amount = offence_amount * (stocks_pct / 100)
+    btc_amount = offence_amount * (btc_pct / 100)
+    bonds_amount = defence_amount * (bonds_pct / 100)
+    gold_amount = defence_amount * (gold_pct / 100)
 
-        with calc_right:
-            st.markdown(
-                f'<div style="display:flex; gap:1rem; padding-top:0.5rem;">'
-                f'  <div style="flex:1; background:#1a2e1a; padding:1rem; border-radius:8px; border-left:4px solid #22c55e;">'
-                f'    <div style="font-size:0.95rem; font-weight:bold; color:#22c55e;">Offence — £{offence_amount:,.2f} ({offence_override}%)</div>'
-                f'    <div style="margin-top:0.6rem;">'
-                f'      <div style="display:flex; justify-content:space-between; padding:0.2rem 0;"><span>Stocks</span><span style="font-weight:bold;">£{stocks_amount:,.2f}</span></div>'
-                f'      <div style="display:flex; justify-content:space-between; padding:0.2rem 0;"><span>Bitcoin</span><span style="font-weight:bold;">£{btc_amount:,.2f}</span></div>'
-                f'    </div>'
-                f'  </div>'
-                f'  <div style="flex:1; background:#1a1a2e; padding:1rem; border-radius:8px; border-left:4px solid #3b82f6;">'
-                f'    <div style="font-size:0.95rem; font-weight:bold; color:#3b82f6;">Defence — £{defence_amount:,.2f} ({defence_override}%)</div>'
-                f'    <div style="margin-top:0.6rem;">'
-                f'      <div style="display:flex; justify-content:space-between; padding:0.2rem 0;"><span>Bonds/Gilts</span><span style="font-weight:bold;">£{bonds_amount:,.2f}</span></div>'
-                f'      <div style="display:flex; justify-content:space-between; padding:0.2rem 0;"><span>Gold</span><span style="font-weight:bold;">£{gold_amount:,.2f}</span></div>'
-                f'    </div>'
-                f'  </div>'
-                f'</div>',
-                unsafe_allow_html=True,
-            )
+    def fmt(val: float) -> str:
+        return f"£{val:,.2f}" if monthly_amount > 0 else "—"
+
+    with calc_right:
+        st.markdown(
+            f'<div style="display:flex; gap:1rem; padding-top:0.5rem;">'
+            f'  <div style="flex:1; background:#1a2e1a; padding:1rem; border-radius:8px; border-left:4px solid #22c55e;">'
+            f'    <div style="font-size:0.95rem; font-weight:bold; color:#22c55e;">Offence — {fmt(offence_amount)} ({offence_override}%)</div>'
+            f'    <div style="margin-top:0.6rem;">'
+            f'      <div style="display:flex; justify-content:space-between; padding:0.2rem 0;"><span>Stocks</span><span style="font-weight:bold;">{fmt(stocks_amount)}</span></div>'
+            f'      <div style="display:flex; justify-content:space-between; padding:0.2rem 0;"><span>Bitcoin</span><span style="font-weight:bold;">{fmt(btc_amount)}</span></div>'
+            f'    </div>'
+            f'  </div>'
+            f'  <div style="flex:1; background:#1a1a2e; padding:1rem; border-radius:8px; border-left:4px solid #3b82f6;">'
+            f'    <div style="font-size:0.95rem; font-weight:bold; color:#3b82f6;">Defence — {fmt(defence_amount)} ({defence_override}%)</div>'
+            f'    <div style="margin-top:0.6rem;">'
+            f'      <div style="display:flex; justify-content:space-between; padding:0.2rem 0;"><span>Bonds/Gilts</span><span style="font-weight:bold;">{fmt(bonds_amount)}</span></div>'
+            f'      <div style="display:flex; justify-content:space-between; padding:0.2rem 0;"><span>Gold</span><span style="font-weight:bold;">{fmt(gold_amount)}</span></div>'
+            f'    </div>'
+            f'  </div>'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
 
 
 if __name__ == "__main__":
