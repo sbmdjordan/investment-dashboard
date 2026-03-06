@@ -175,7 +175,7 @@ def main():
             f'<div data-slider-label="0" style="display:flex; justify-content:space-between; align-items:center; font-size:0.95rem; margin-top:-0.5rem;">'
             f'  <span style="color:#22c55e; font-weight:bold;"><span class="sl-left">{offence_override}%</span> Offence</span>'
             f'  <span class="sig-tip" style="margin:0;"><span class="tip-icon">i</span>'
-            f'    <span class="tip-text" style="left:auto; right:0; top:auto; bottom:100%; transform:none; margin-bottom:8px;">{tip}</span></span>'
+            f'    <span class="tip-text" style="left:50%; right:auto; top:100%; bottom:auto; transform:translateX(-50%); margin-top:8px; width:220px;">{tip}</span></span>'
             f'  <span style="color:#3b82f6; font-weight:bold;">Defence <span class="sl-right">{defence_override}%</span></span>'
             f'</div>',
             unsafe_allow_html=True,
