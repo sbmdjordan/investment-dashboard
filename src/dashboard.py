@@ -120,11 +120,39 @@ def main():
         st.header("Allocation Overrides")
         st.caption("Adjust from the system's suggestion if needed")
 
-        # Hide slider value tooltip
+        # Hide slider thumb value + real-time label updates via JS
         st.markdown(
             """<style>
-            [data-testid="stSidebar"] .stSlider [data-testid="stThumbValue"] { display: none; }
-            </style>""",
+            [data-testid="stSidebar"] [data-testid="stThumbValue"] { display: none !important; }
+            [data-testid="stSidebar"] .stSlider [data-testid="stTickBarMin"],
+            [data-testid="stSidebar"] .stSlider [data-testid="stTickBarMax"] { display: none !important; }
+            </style>
+            <script>
+            function initSliderSync() {
+                const sidebar = document.querySelector('[data-testid="stSidebar"]');
+                if (!sidebar) { setTimeout(initSliderSync, 500); return; }
+                const sliders = sidebar.querySelectorAll('[role="slider"]');
+                const labels = sidebar.querySelectorAll('[data-slider-label]');
+                if (sliders.length < 3 || labels.length < 3) { setTimeout(initSliderSync, 500); return; }
+                sliders.forEach((slider, i) => {
+                    const label = labels[i];
+                    if (!label || slider._synced) return;
+                    slider._synced = true;
+                    const leftSpan = label.querySelector('.sl-left');
+                    const rightSpan = label.querySelector('.sl-right');
+                    const update = () => {
+                        const val = parseInt(slider.getAttribute('aria-valuenow'));
+                        const comp = 100 - val;
+                        if (leftSpan) leftSpan.textContent = val + '%';
+                        if (rightSpan) rightSpan.textContent = comp + '%';
+                    };
+                    slider.addEventListener('input', update);
+                    const obs = new MutationObserver(update);
+                    obs.observe(slider, { attributes: true, attributeFilter: ['aria-valuenow'] });
+                });
+            }
+            initSliderSync();
+            </script>""",
             unsafe_allow_html=True,
         )
 
@@ -140,11 +168,11 @@ def main():
         tip = ("The system suggests this split based on macro signals. "
                "Slide to override.")
         st.markdown(
-            f'<div style="display:flex; justify-content:space-between; align-items:center; font-size:0.95rem; margin-top:-0.5rem;">'
-            f'  <span style="color:#22c55e; font-weight:bold;">{offence_override}% Offence</span>'
+            f'<div data-slider-label="0" style="display:flex; justify-content:space-between; align-items:center; font-size:0.95rem; margin-top:-0.5rem;">'
+            f'  <span style="color:#22c55e; font-weight:bold;"><span class="sl-left">{offence_override}%</span> Offence</span>'
             f'  <span class="sig-tip" style="margin:0;"><span class="tip-icon">i</span>'
-            f'    <span class="tip-text" style="left:auto; right:24px;">{tip}</span></span>'
-            f'  <span style="color:#3b82f6; font-weight:bold;">Defence {defence_override}%</span>'
+            f'    <span class="tip-text" style="left:auto; right:0; top:auto; bottom:100%; transform:none; margin-bottom:8px;">{tip}</span></span>'
+            f'  <span style="color:#3b82f6; font-weight:bold;">Defence <span class="sl-right">{defence_override}%</span></span>'
             f'</div>',
             unsafe_allow_html=True,
         )
@@ -153,9 +181,9 @@ def main():
         stocks_pct = st.slider("Stocks / Bitcoin split", 0, 100, 60, 5, label_visibility="collapsed")
         btc_pct = 100 - stocks_pct
         st.markdown(
-            f'<div style="display:flex; justify-content:space-between; font-size:0.95rem; margin-top:-0.5rem;">'
-            f'<span style="font-weight:bold;">{stocks_pct}% Stocks</span>'
-            f'<span style="font-weight:bold;">Bitcoin {btc_pct}%</span>'
+            f'<div data-slider-label="1" style="display:flex; justify-content:space-between; font-size:0.95rem; margin-top:-0.5rem;">'
+            f'<span style="font-weight:bold;"><span class="sl-left">{stocks_pct}%</span> Stocks</span>'
+            f'<span style="font-weight:bold;">Bitcoin <span class="sl-right">{btc_pct}%</span></span>'
             f'</div>',
             unsafe_allow_html=True,
         )
@@ -164,9 +192,9 @@ def main():
         bonds_pct = st.slider("Bonds / Gold split", 0, 100, 70, 5, label_visibility="collapsed")
         gold_pct = 100 - bonds_pct
         st.markdown(
-            f'<div style="display:flex; justify-content:space-between; font-size:0.95rem; margin-top:-0.5rem;">'
-            f'<span style="font-weight:bold;">{bonds_pct}% Bonds/Gilts</span>'
-            f'<span style="font-weight:bold;">Gold {gold_pct}%</span>'
+            f'<div data-slider-label="2" style="display:flex; justify-content:space-between; font-size:0.95rem; margin-top:-0.5rem;">'
+            f'<span style="font-weight:bold;"><span class="sl-left">{bonds_pct}%</span> Bonds/Gilts</span>'
+            f'<span style="font-weight:bold;">Gold <span class="sl-right">{gold_pct}%</span></span>'
             f'</div>',
             unsafe_allow_html=True,
         )
