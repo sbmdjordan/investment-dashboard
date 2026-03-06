@@ -120,26 +120,70 @@ def main():
         st.header("Allocation Overrides")
         st.caption("Adjust from the system's suggestion if needed")
 
+        st.markdown(
+            '<div style="display:flex; justify-content:space-between; font-weight:600; font-size:0.95rem;">'
+            '<span style="color:#22c55e;">Offence</span>'
+            '<span style="color:#3b82f6;">Defence</span>'
+            '</div>',
+            unsafe_allow_html=True,
+        )
         offence_override = st.slider(
-            "Offence %",
+            "Offence / Defence split",
             min_value=25,
             max_value=75,
             value=result["offence_pct"],
             step=5,
-            help="The system suggests this value based on macro signals. Slide to override.",
+            label_visibility="collapsed",
         )
         defence_override = 100 - offence_override
+        st.markdown(
+            f'<div style="display:flex; justify-content:space-between; font-size:0.95rem; margin-top:-0.5rem;">'
+            f'<span style="color:#22c55e; font-weight:bold;">{offence_override}%</span>'
+            f'<span style="color:#3b82f6; font-weight:bold;">{defence_override}%</span>'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
+        with st.popover("ℹ How this works", use_container_width=True):
+            st.markdown(
+                "The system suggests this split based on macro signals. "
+                "Slide to override."
+            )
 
         st.divider()
-        st.subheader("Inside Offence")
-        stocks_pct = st.slider("Stocks %", 0, 100, 60, 5)
+        st.markdown(
+            '<div style="display:flex; justify-content:space-between; font-weight:600; font-size:0.95rem;">'
+            '<span>Stocks</span>'
+            '<span>Bitcoin</span>'
+            '</div>',
+            unsafe_allow_html=True,
+        )
+        stocks_pct = st.slider("Stocks / Bitcoin split", 0, 100, 60, 5, label_visibility="collapsed")
         btc_pct = 100 - stocks_pct
-        st.caption(f"Bitcoin: {btc_pct}%")
+        st.markdown(
+            f'<div style="display:flex; justify-content:space-between; font-size:0.95rem; margin-top:-0.5rem;">'
+            f'<span style="font-weight:bold;">{stocks_pct}%</span>'
+            f'<span style="font-weight:bold;">{btc_pct}%</span>'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
 
-        st.subheader("Inside Defence")
-        bonds_pct = st.slider("Bonds/Gilts %", 0, 100, 70, 5)
+        st.divider()
+        st.markdown(
+            '<div style="display:flex; justify-content:space-between; font-weight:600; font-size:0.95rem;">'
+            '<span>Bonds/Gilts</span>'
+            '<span>Gold</span>'
+            '</div>',
+            unsafe_allow_html=True,
+        )
+        bonds_pct = st.slider("Bonds / Gold split", 0, 100, 70, 5, label_visibility="collapsed")
         gold_pct = 100 - bonds_pct
-        st.caption(f"Gold: {gold_pct}%")
+        st.markdown(
+            f'<div style="display:flex; justify-content:space-between; font-size:0.95rem; margin-top:-0.5rem;">'
+            f'<span style="font-weight:bold;">{bonds_pct}%</span>'
+            f'<span style="font-weight:bold;">{gold_pct}%</span>'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
 
     # --- Top: Allocation suggestion ---
     hdr_col, info_col = st.columns([6, 1])
