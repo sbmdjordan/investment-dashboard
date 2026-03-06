@@ -204,18 +204,21 @@ def main():
         )
 
     # --- Top: Allocation suggestion ---
-    hdr_col, info_col = st.columns([6, 1])
-    with hdr_col:
-        st.header("Suggested Allocation")
-    with info_col:
-        with st.popover("i", use_container_width=True):
-            st.markdown(
-                "The system scores 7 macro signals from **-2 to +2** each.\n\n"
-                "Positive total = market looks favourable = more offence.\n"
-                "Negative total = caution = more defence.\n\n"
-                "Offence (stocks + BTC) always stays between **25-75%**.\n"
-                "Defence (bonds + gold) is the remainder."
-            )
+    alloc_tip = (
+        "The system scores 7 macro signals from -2 to +2 each.<br><br>"
+        "Positive total = market looks favourable = more offence.<br>"
+        "Negative total = caution = more defence.<br><br>"
+        "Offence (stocks + BTC) always stays between 25-75%.<br>"
+        "Defence (bonds + gold) is the remainder."
+    )
+    st.markdown(
+        f'<div style="display:flex; align-items:center; gap:8px;">'
+        f'<h2 style="font-weight:600; margin:0; padding:0.6rem 0;">Suggested Allocation</h2>'
+        f'<span class="sig-tip"><span class="tip-icon">i</span>'
+        f'<span class="tip-text">{alloc_tip}</span></span>'
+        f'</div>',
+        unsafe_allow_html=True,
+    )
 
     col1, col2, col3 = st.columns([2, 1, 2])
     with col1:
