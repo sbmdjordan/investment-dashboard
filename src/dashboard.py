@@ -91,12 +91,14 @@ def signal_color(score: int) -> str:
         return "#ef4444"
 
 
-def render_gauge(label: str, pct: int, color: str):
+def render_gauge(label: str, pct: int, color: str, subtitle: str = ""):
+    sub_html = f'<div style="font-size:0.85rem; color:#888; margin-top:0.2rem;">{subtitle}</div>' if subtitle else ""
     st.markdown(
         f"""
         <div style="text-align:center;">
             <div style="font-size:3rem; font-weight:bold; color:{color};">{pct}%</div>
             <div style="font-size:1.1rem; color:#ccc;">{label}</div>
+            {sub_html}
         </div>
         """,
         unsafe_allow_html=True,
@@ -155,8 +157,7 @@ def main():
 
     col1, col2, col3 = st.columns([2, 1, 2])
     with col1:
-        render_gauge("Offence", result["offence_pct"], "#22c55e")
-        st.caption("Stocks + Bitcoin")
+        render_gauge("Offence", result["offence_pct"], "#22c55e", "Stocks + Bitcoin")
     with col2:
         score = result["total_score"]
         color = "#22c55e" if score > 0 else "#ef4444" if score < 0 else "#9ca3af"
@@ -168,8 +169,7 @@ def main():
             unsafe_allow_html=True,
         )
     with col3:
-        render_gauge("Defence", result["defence_pct"], "#3b82f6")
-        st.caption("Bonds/Gilts + Gold")
+        render_gauge("Defence", result["defence_pct"], "#3b82f6", "Bonds/Gilts + Gold")
 
     # --- Signals + Additional Indicators side by side ---
     signals_col, indicators_col = st.columns([2, 1])
