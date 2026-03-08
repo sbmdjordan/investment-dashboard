@@ -27,7 +27,6 @@ def get_sp500_pe() -> float | None:
             return round(float(pe), 1)
     except Exception:
         pass
-    # Fallback: calculate from price and EPS
     try:
         spy = yf.Ticker("SPY")
         pe = spy.info.get("forwardPE")
