@@ -2,49 +2,52 @@
 
 import yfinance as yf
 import requests
+import streamlit as st
+from datetime import datetime
+
+
+def _yf_latest(ticker: str, period: str = "5d") -> float | None:
+    """Get latest close for a yfinance ticker. Uses 5d to handle weekends."""
+    try:
+        t = yf.Ticker(ticker)
+        hist = t.history(period=period)
+        if not hist.empty:
+            return round(float(hist["Close"].iloc[-1]), 2)
+    except Exception:
+        pass
+    return None
 
 
 def get_sp500_pe() -> float | None:
     """Get S&P 500 trailing P/E ratio via SPY ETF."""
     try:
         spy = yf.Ticker("SPY")
-        info = spy.info
-        return info.get("trailingPE")
+        pe = spy.info.get("trailingPE")
+        if pe is not None:
+            return round(float(pe), 1)
     except Exception:
-        return None
+        pass
+    # Fallback: calculate from price and EPS
+    try:
+        spy = yf.Ticker("SPY")
+        pe = spy.info.get("forwardPE")
+        if pe is not None:
+            return round(float(pe), 1)
+    except Exception:
+        pass
+    return None
 
 
 def get_vix() -> float | None:
-    """Get current VIX level."""
-    try:
-        vix = yf.Ticker("^VIX")
-        hist = vix.history(period="1d")
-        if not hist.empty:
-            return round(float(hist["Close"].iloc[-1]), 2)
-    except Exception:
-        return None
+    return _yf_latest("^VIX")
 
 
 def get_treasury_10y() -> float | None:
-    """Get US 10-year Treasury yield from ^TNX."""
-    try:
-        tnx = yf.Ticker("^TNX")
-        hist = tnx.history(period="1d")
-        if not hist.empty:
-            return round(float(hist["Close"].iloc[-1]), 2)
-    except Exception:
-        return None
+    return _yf_latest("^TNX")
 
 
 def get_treasury_3m() -> float | None:
-    """Get US 13-week T-bill rate from ^IRX."""
-    try:
-        irx = yf.Ticker("^IRX")
-        hist = irx.history(period="1d")
-        if not hist.empty:
-            return round(float(hist["Close"].iloc[-1]), 2)
-    except Exception:
-        return None
+    return _yf_latest("^IRX")
 
 
 def get_treasury_10y_trend() -> str | None:
@@ -69,7 +72,7 @@ def get_sp500_drawdown() -> float | None:
     """Calculate S&P 500 drawdown from all-time high."""
     try:
         sp = yf.Ticker("^GSPC")
-        hist = sp.history(period="max")
+        hist = sp.history(period="2y")
         if hist.empty:
             return None
         ath = float(hist["Close"].max())
@@ -157,6 +160,7 @@ def get_boe_rate() -> float | None:
     return None
 
 
+@st.cache_data(ttl=3600, show_spinner=False)
 def fetch_all() -> dict:
     """Fetch all indicators, returning dict with values (None if unavailable)."""
     t10 = get_treasury_10y()
