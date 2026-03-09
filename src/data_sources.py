@@ -1,18 +1,81 @@
-"""Fetch macro indicators from free data sources."""
+"""Fetch macro indicators from free data sources.
+
+Primary sources use simple HTTP APIs (FRED, multpl.com, CNN).
+yfinance is used only for .history() calls which are reliable.
+yfinance .info is NOT used — it gets blocked on cloud servers.
+"""
 
 import logging
-import yfinance as yf
+import re
+
 import requests
 import streamlit as st
+import yfinance as yf
 
 log = logging.getLogger(__name__)
 
+_HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+}
+
+
+# --- FRED helper (free, no API key, very reliable) ---
+
+def _fred_latest(series_id: str) -> float | None:
+    """Get latest value from a FRED CSV series."""
+    try:
+        url = (
+            f"https://fred.stlouisfed.org/graph/fredgraph.csv?"
+            f"id={series_id}&cosd=2025-01-01&coed=2030-12-31"
+        )
+        r = requests.get(url, headers=_HEADERS, timeout=10)
+        if r.status_code == 200:
+            lines = r.text.strip().split("\n")
+            # Walk backwards to find latest non-empty value
+            for line in reversed(lines[1:]):
+                parts = line.split(",")
+                if len(parts) == 2 and parts[1] not in (".", ""):
+                    return float(parts[1])
+        log.warning("FRED %s: status %s", series_id, r.status_code)
+    except Exception as e:
+        log.error("FRED %s failed: %s", series_id, e)
+    return None
+
+
+# --- S&P 500 P/E from multpl.com (no API key, reliable) ---
+
+def get_sp500_pe() -> float | None:
+    """Get S&P 500 trailing P/E ratio from multpl.com."""
+    try:
+        r = requests.get(
+            "https://www.multpl.com/s-p-500-pe-ratio",
+            headers=_HEADERS, timeout=10,
+        )
+        if r.status_code == 200:
+            match = re.search(
+                r"Current S&(?:amp;)?P 500 PE Ratio is ([\d.]+)", r.text
+            )
+            if match:
+                return round(float(match.group(1)), 1)
+        log.warning("multpl.com PE: status %s, no match", r.status_code)
+    except Exception as e:
+        log.error("multpl.com PE failed: %s", e)
+    # Fallback: yfinance .info (works locally, often blocked on cloud)
+    try:
+        pe = yf.Ticker("SPY").info.get("trailingPE")
+        if pe is not None:
+            return round(float(pe), 1)
+    except Exception as e:
+        log.error("yfinance SPY PE fallback failed: %s", e)
+    return None
+
+
+# --- Market data from yfinance .history() (reliable even on cloud) ---
 
 def _yf_latest(ticker: str, period: str = "5d") -> float | None:
     """Get latest close for a yfinance ticker. Uses 5d to handle weekends."""
     try:
-        t = yf.Ticker(ticker)
-        hist = t.history(period=period)
+        hist = yf.Ticker(ticker).history(period=period)
         if not hist.empty:
             return round(float(hist["Close"].iloc[-1]), 2)
         log.warning("yf %s history empty (period=%s)", ticker, period)
@@ -21,43 +84,34 @@ def _yf_latest(ticker: str, period: str = "5d") -> float | None:
     return None
 
 
-def get_sp500_pe() -> float | None:
-    """Get S&P 500 trailing P/E ratio via SPY ETF."""
-    try:
-        spy = yf.Ticker("SPY")
-        pe = spy.info.get("trailingPE")
-        if pe is not None:
-            return round(float(pe), 1)
-        log.warning("SPY trailingPE missing from info, keys: %s", list(spy.info.keys())[:10])
-    except Exception as e:
-        log.error("SPY trailingPE failed: %s", e)
-    try:
-        spy = yf.Ticker("SPY")
-        pe = spy.info.get("forwardPE")
-        if pe is not None:
-            return round(float(pe), 1)
-    except Exception as e:
-        log.error("SPY forwardPE failed: %s", e)
-    return None
-
-
 def get_vix() -> float | None:
+    """Get VIX — try FRED first, yfinance fallback."""
+    val = _fred_latest("VIXCLS")
+    if val is not None:
+        return round(val, 2)
     return _yf_latest("^VIX")
 
 
 def get_treasury_10y() -> float | None:
+    """Get 10Y Treasury yield — FRED primary, yfinance fallback."""
+    val = _fred_latest("DGS10")
+    if val is not None:
+        return round(val, 2)
     return _yf_latest("^TNX")
 
 
 def get_treasury_3m() -> float | None:
+    """Get 3M T-bill rate — FRED primary, yfinance fallback."""
+    val = _fred_latest("DTB3")
+    if val is not None:
+        return round(val, 2)
     return _yf_latest("^IRX")
 
 
 def get_treasury_10y_trend() -> str | None:
     """Check if 10Y yield is trending up or down (3-month lookback)."""
     try:
-        tnx = yf.Ticker("^TNX")
-        hist = tnx.history(period="3mo")
+        hist = yf.Ticker("^TNX").history(period="3mo")
         if len(hist) < 10:
             return None
         recent = float(hist["Close"].iloc[-1])
@@ -67,61 +121,47 @@ def get_treasury_10y_trend() -> str | None:
         elif recent < three_months_ago - 0.1:
             return "falling"
         return "flat"
-    except Exception:
+    except Exception as e:
+        log.error("10Y trend failed: %s", e)
         return None
 
 
 def get_sp500_drawdown() -> float | None:
     """Calculate S&P 500 drawdown from all-time high."""
     try:
-        sp = yf.Ticker("^GSPC")
-        hist = sp.history(period="2y")
+        hist = yf.Ticker("^GSPC").history(period="2y")
         if hist.empty:
             return None
         ath = float(hist["Close"].max())
         current = float(hist["Close"].iloc[-1])
         drawdown = ((ath - current) / ath) * 100
         return round(drawdown, 2)
-    except Exception:
+    except Exception as e:
+        log.error("S&P drawdown failed: %s", e)
         return None
 
 
 def get_fear_greed() -> int | None:
     """Get CNN Fear & Greed Index value."""
     try:
-        url = "https://production.dataviz.cnn.io/index/fearandgreed/graphdata"
-        headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-            "Accept": "application/json",
-            "Referer": "https://edition.cnn.com/markets/fear-and-greed",
-        }
-        resp = requests.get(url, headers=headers, timeout=10)
+        resp = requests.get(
+            "https://production.dataviz.cnn.io/index/fearandgreed/graphdata",
+            headers={**_HEADERS, "Accept": "application/json",
+                     "Referer": "https://edition.cnn.com/markets/fear-and-greed"},
+            timeout=10,
+        )
         if resp.status_code == 200:
-            data = resp.json()
-            score = data.get("fear_and_greed", {}).get("score")
+            score = resp.json().get("fear_and_greed", {}).get("score")
             if score is not None:
                 return int(round(score))
-    except Exception:
-        pass
+    except Exception as e:
+        log.error("Fear & Greed failed: %s", e)
     return None
 
 
 def get_fed_rate() -> float | None:
-    """Get Fed Funds target upper rate from FRED (no API key needed)."""
-    try:
-        url = (
-            "https://fred.stlouisfed.org/graph/fredgraph.csv?"
-            "id=DFEDTARU&cosd=2025-01-01&coed=2030-12-31&fq=Daily%2C%207-Day&fam=avg"
-        )
-        r = requests.get(url, headers={"User-Agent": "Mozilla/5.0"}, timeout=10)
-        if r.status_code == 200:
-            lines = r.text.strip().split("\n")
-            last = lines[-1].split(",")
-            if len(last) == 2 and last[1] != ".":
-                return float(last[1])
-    except Exception:
-        pass
-    return None
+    """Get Fed Funds target upper rate from FRED."""
+    return _fred_latest("DFEDTARU")
 
 
 def get_ecb_rate() -> float | None:
@@ -135,11 +175,10 @@ def get_ecb_rate() -> float | None:
         if r.status_code == 200:
             lines = r.text.strip().split("\n")
             last = lines[-1].split(",")
-            # OBS_VALUE is column index 9
             if len(last) > 9:
                 return float(last[9])
-    except Exception:
-        pass
+    except Exception as e:
+        log.error("ECB rate failed: %s", e)
     return None
 
 
@@ -152,14 +191,14 @@ def get_boe_rate() -> float | None:
             "&Datefrom=01/Jan/2024&Dateto=31/Dec/2030"
             "&SeriesCodes=IUDBEDR&CSVF=CN&UsingCodes=Y&VPD=Y&VFD=N"
         )
-        r = requests.get(url, headers={"User-Agent": "Mozilla/5.0"}, timeout=10)
+        r = requests.get(url, headers=_HEADERS, timeout=10)
         if r.status_code == 200:
             lines = r.text.strip().split("\n")
             last = lines[-1].split(",")
             if len(last) >= 3:
                 return float(last[2])
-    except Exception:
-        pass
+    except Exception as e:
+        log.error("BoE rate failed: %s", e)
     return None
 
 
