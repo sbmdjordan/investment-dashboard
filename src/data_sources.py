@@ -1,9 +1,11 @@
 """Fetch macro indicators from free data sources."""
 
+import logging
 import yfinance as yf
 import requests
 import streamlit as st
-from datetime import datetime
+
+log = logging.getLogger(__name__)
 
 
 def _yf_latest(ticker: str, period: str = "5d") -> float | None:
@@ -13,8 +15,9 @@ def _yf_latest(ticker: str, period: str = "5d") -> float | None:
         hist = t.history(period=period)
         if not hist.empty:
             return round(float(hist["Close"].iloc[-1]), 2)
-    except Exception:
-        pass
+        log.warning("yf %s history empty (period=%s)", ticker, period)
+    except Exception as e:
+        log.error("yf %s failed: %s", ticker, e)
     return None
 
 
@@ -25,15 +28,16 @@ def get_sp500_pe() -> float | None:
         pe = spy.info.get("trailingPE")
         if pe is not None:
             return round(float(pe), 1)
-    except Exception:
-        pass
+        log.warning("SPY trailingPE missing from info, keys: %s", list(spy.info.keys())[:10])
+    except Exception as e:
+        log.error("SPY trailingPE failed: %s", e)
     try:
         spy = yf.Ticker("SPY")
         pe = spy.info.get("forwardPE")
         if pe is not None:
             return round(float(pe), 1)
-    except Exception:
-        pass
+    except Exception as e:
+        log.error("SPY forwardPE failed: %s", e)
     return None
 
 
